@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "resources": [
+    {
+      "type": "Microsoft.DocumentDB/databaseAccounts",
+      "apiVersion": "2021-04-15",
+      "name": "AzureResumeCosmosDB",
+      "location": "[resourceGroup().location]",
+      "kind": "GlobalDocumentDB",
+      "properties": {
+        "databaseAccountOfferType": "Standard",
+        "serverless": true,
+        "capabilities": [
+          {
+            "name": "EnableTable"
+          }
+        ],
+        "consistencyPolicy": {
+          "defaultConsistencyLevel": "Session"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-03-01",
+      "name": "AzureResumeFunctionApp",
+      "location": "[resourceGroup().location]",
+      "kind": "functionapp",
+      "properties": {
+        "siteConfig": {
+          "appSettings": [
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "python"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[parameters('storageAccountConnectionString')]"
+            },
+            {
+              "name": "CosmosDBConnectionString",
+              "value": "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', 'AzureResumeCosmosDB'), '2021-04-15').primaryMasterKey]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DocumentDB/databaseAccounts', 'AzureResumeCosmosDB')]"
+      ]
+    }
+  ],
+  "parameters": {
+    "storageAccountConnectionString": {
+      "type": "string"
+    }
+  }
+}
